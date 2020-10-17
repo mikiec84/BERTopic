@@ -8,11 +8,11 @@ import pandas as pd
 from typing import List, Tuple, Dict, Union
 
 # Models
-import umap
 import hdbscan
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import normalize
 
 # BERTopic
 from .ctfidf import ClassTFIDF
@@ -180,10 +180,11 @@ class BERTopic:
             documents: Updated dataframe with documents and their corresponding IDs
                        and newly added Topics
         """
+        normalized_embeddings = normalize(embeddings, norm='l2')
         self.cluster_model = hdbscan.HDBSCAN(min_cluster_size=self.min_topic_size,
-                                             metric='cosine',
+                                             metric='euclidean',
                                              cluster_selection_method='eom',
-                                             prediction_data=True).fit(embeddings)
+                                             prediction_data=True).fit(normalized_embeddings)
         documents['Topic'] = self.cluster_model.labels_
         self._update_topic_size(documents)
         logger.info("Clustered UMAP embeddings with HDBSCAN")
