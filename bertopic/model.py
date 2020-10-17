@@ -114,10 +114,10 @@ class BERTopic:
         embeddings = self._extract_embeddings(documents.Document)
 
         # Reduce dimensionality with UMAP
-        umap_embeddings = self._reduce_dimensionality(embeddings)
+        # umap_embeddings = self._reduce_dimensionality(embeddings)
 
         # Cluster UMAP embeddings with HDBSCAN
-        documents = self._cluster_embeddings(umap_embeddings, documents)
+        documents = self._cluster_embeddings(embeddings, documents)
 
         # Extract topics by calculating c-TF-IDF
         c_tf_idf = self._extract_topics(documents)
@@ -169,24 +169,7 @@ class BERTopic:
             mapped_predictions.append(prediction)
         return mapped_predictions
 
-    def _reduce_dimensionality(self, embeddings: np.ndarray) -> np.ndarray:
-        """ Reduce dimensionality of embeddings using UMAP and train a UMAP model
-
-        Arguments:
-            embeddings: The extracted embeddings using the sentence transformer module.
-
-        Returns:
-            umap_embeddings: The reduced embeddings
-        """
-        self.umap_model = umap.UMAP(n_neighbors=self.n_neighbors,
-                                    n_components=self.n_components,
-                                    min_dist=0.0,
-                                    metric='cosine').fit(embeddings)
-        umap_embeddings = self.umap_model.transform(embeddings)
-        logger.info("Reduced dimensionality with UMAP")
-        return umap_embeddings
-
-    def _cluster_embeddings(self, umap_embeddings: np.ndarray, documents: pd.DataFrame) -> pd.DataFrame:
+    def _cluster_embeddings(self, embeddings: np.ndarray, documents: pd.DataFrame) -> pd.DataFrame:
         """ Cluster UMAP embeddings with HDBSCAN
 
         Arguments:
@@ -198,9 +181,9 @@ class BERTopic:
                        and newly added Topics
         """
         self.cluster_model = hdbscan.HDBSCAN(min_cluster_size=self.min_topic_size,
-                                             metric='euclidean',
+                                             metric='cosine',
                                              cluster_selection_method='eom',
-                                             prediction_data=True).fit(umap_embeddings)
+                                             prediction_data=True).fit(embeddings)
         documents['Topic'] = self.cluster_model.labels_
         self._update_topic_size(documents)
         logger.info("Clustered UMAP embeddings with HDBSCAN")
